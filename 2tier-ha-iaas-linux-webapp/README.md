@@ -34,7 +34,7 @@ This template creates multiple linux app and db servers in availabily sets to ru
 <a href="https://portal.azure.us/#create/Microsoft.Template/uri/https://raw.githubusercontent.com/sdubeymsft/az-templates/master/2tier-ha-iaas-linux-webapp/azuredeploy.json" target="_blank">
     <img src="http://azuredeploy.net/AzureGov.png"/>
 </a>
-<a href="http://armviz.io/#/?https://raw.githubusercontent.com/sdubeymsft/az-templates/master/2tier-ha-iaas-linux-webapp/azuredeploy.json" target="_blank">
+<a href="http://armviz.io/#/?load=https://raw.githubusercontent.com/sdubeymsft/az-templates/master/2tier-ha-iaas-linux-webapp/azuredeploy.json" target="_blank">
     <img src="http://armviz.io/visualizebutton.png"/>
 </a>
 
