@@ -28,13 +28,13 @@ This template creates multiple linux app and db servers in availabily sets to ru
 4. All VMs inlude a [4TB (P50)](https://azure.microsoft.com/en-us/pricing/details/managed-disks/) Data Disk attached (unmounted) to them.
 
 
-<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Faz-templates%2Fmaster%2F2tier-ha-iaas-linux-webapp%2Fazuredeploy.json" target="_blank">
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https://raw.githubusercontent.com/sdubeymsft/az-templates/master/2tier-ha-iaas-linux-webapp/azuredeploy.json" target="_blank">
     <img src="http://azuredeploy.net/deploybutton.png"/>
 </a>
-<a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Faz-templates%2Fmaster%2F2tier-ha-iaas-linux-webapp%2Fazuredeploy.json" target="_blank">
+<a href="https://portal.azure.us/#create/Microsoft.Template/uri/https://raw.githubusercontent.com/sdubeymsft/az-templates/master/2tier-ha-iaas-linux-webapp/azuredeploy.json" target="_blank">
     <img src="http://azuredeploy.net/AzureGov.png"/>
 </a>
-<a href="http://armviz.io/#/?https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Faz-templates%2Fmaster%2F2tier-ha-iaas-linux-webapp%2Fazuredeploy.json" target="_blank">
+<a href="http://armviz.io/#/?https://raw.githubusercontent.com/sdubeymsft/az-templates/master/2tier-ha-iaas-linux-webapp/azuredeploy.json" target="_blank">
     <img src="http://armviz.io/visualizebutton.png"/>
 </a>
 
