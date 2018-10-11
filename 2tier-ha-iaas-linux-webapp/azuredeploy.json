@@ -1,0 +1,379 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "Admin username for all the App and DB VMs."
+            }
+        },
+        "sshPublicKey": {
+            "type": "string",
+            "metadata": {
+                "description": "ssh public key for all the App and DB VMs."
+            }
+        },
+        "environmentSize": {
+            "type": "string",
+            "defaultValue": "Medium",
+            "allowedValues": [
+                "Small",
+                "Medium",
+                "Large"
+            ],
+            "metadata": {
+                "description": "Initial size of the environment with recommended VM sizes for App and DB servers. Please refer planning/deployment guide for more detials."
+            }
+        },
+        "numberOfAppServers": {
+            "type": "int",
+            "defaultValue": 3,
+            "minValue": 2,
+            "maxValue": 9,
+            "metadata": {
+                "description": "Number of VMs to host App Server to deploy, limit 5 since this sample is using a single storage account"
+            }
+        },
+        "numberOfDBServers": {
+            "type": "int",
+            "defaultValue": 2,
+            "minValue": 2,
+            "maxValue": 6,
+            "metadata": {
+                "description": "Number of VMs to host DB Server to deploy, limit 5 since this sample is using a single storage account"
+            }
+        }
+    },
+    "variables": {
+        "location": "[resourceGroup().location]",
+        "resourceGroupName": "[resourceGroup().name]",
+        "appServerNamePrefix": "app",
+        "dbServerNamePrefix": "db",
+        "appAVSetName": "[concat(variables('appServerNamePrefix'), 'avset')]",
+        "dbAVSetName": "[concat(variables('dbServerNamePrefix'), 'avset')]",
+        "virtualNetworkName": "[concat(variables('resourceGroupName'), 'vnet')]",
+        "addressPrefix": "10.1.7.0/24",
+        "subnetName": "default",
+        "subnetPrefix": "10.1.7.0/24",
+        "diagStorageAccountName": "[concat(variables('resourceGroupName'), 'diag')]",
+        "CentOS": {
+            "publisher": "OpenLogic",
+            "offer": "CentOS",
+            "sku": "6.9",
+            "version": "latest"
+        },
+        "environmentSizeSmall": {
+            "app": {
+                "vmSize": "Standard_E8s_v3"
+            },
+            "db": {
+                "vmSize": "Standard_E16-8s_v3"
+            }
+        },
+        "environmentSizeMedium": {
+            "app": {
+                "vmSize": "Standard_E16-8s_v3"
+            },
+            "db": {
+                "vmSize": "Standard_E32-16s_v3"
+            }
+        },
+        "environmentSizeLarge": {
+            "app": {
+                "vmSize": "Standard_E32-16s_v3"
+            },
+            "db": {
+                "vmSize": "Standard_E64-32s_v3"
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "sku": {
+                "name": "Aligned"
+            },
+            "name": "[variables('appAVSetName')]",
+            "apiVersion": "2017-03-30",
+            "location": "[variables('location')]",
+            "properties": {
+                "platformFaultDomainCount": 2,
+                "platformUpdateDomainCount": 3
+            }
+        },
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "sku": {
+                "name": "Aligned"
+            },
+            "name": "[variables('dbAVSetName')]",
+            "apiVersion": "2017-03-30",
+            "location": "[variables('location')]",
+            "properties": {
+                "platformFaultDomainCount": 2,
+                "platformUpdateDomainCount": 3
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetworkName')]",
+            "apiVersion": "2018-01-01",
+            "location": "[variables('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('addressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnetPrefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "name": "[variables('diagStorageAccountName')]",
+            "apiVersion": "2017-10-01",
+            "location": "[variables('location')]",
+            "properties": {
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [],
+                    "ipRules": [],
+                    "defaultAction": "Allow"
+                },
+                "supportsHttpsTrafficOnly": false,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "enabled": true
+                        },
+                        "blob": {
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[concat(variables('appServerNamePrefix'), copyIndex(), '-ip')]",
+            "apiVersion": "2018-01-01",
+            "location": "[variables('location')]",
+            "copy": {
+                "name": "appIPLoop",
+                "count": "[parameters('numberOfAppServers')]"
+            },
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic"
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[concat(variables('dbServerNamePrefix'), copyIndex(), '-ip')]",
+            "apiVersion": "2018-01-01",
+            "location": "[variables('location')]",
+            "copy": {
+                "name": "dbIPLoop",
+                "count": "[parameters('numberOfDBServers')]"
+            },
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic"
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('appServerNamePrefix'), copyindex(), '-nic1')]",
+            "apiVersion": "2018-01-01",
+            "location": "[variables('location')]",
+            "copy": {
+                "name": "appNICLoop",
+                "count": "[parameters('numberOfAppServers')]"
+            },
+            "dependsOn": [
+                "appIPLoop",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('appServerNamePrefix'), copyIndex(), '-ip'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('dbServerNamePrefix'), copyindex(), '-nic1')]",
+            "apiVersion": "2018-01-01",
+            "location": "[variables('location')]",
+            "copy": {
+                "name": "dbNICLoop",
+                "count": "[parameters('numberOfDBServers')]"
+            },
+            "dependsOn": [
+                "dbIPLoop",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('dbServerNamePrefix'), copyIndex(), '-ip'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(variables('appServerNamePrefix'), copyIndex())]",
+            "apiVersion": "2017-03-30",
+            "location": "[variables('location')]",
+            "copy": {
+                "name": "appVMLoop",
+                "count": "[parameters('numberOfAppServers')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('appAVSetName'))]",
+                "appNICLoop",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('diagStorageAccountName'))]"
+            ],
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('appAVSetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[variables(concat('environmentSize', parameters('environmentSize'))).app.vmSize]"
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('appServerNamePrefix'), copyIndex())]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": true,
+                        "ssh": {
+                            "publicKeys": [
+                                {
+                                    "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
+                                    "keyData": "[parameters('sshPublicKey')]"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('CentOS')]",
+                    "osDisk": {
+                        "name": "[concat(variables('appServerNamePrefix'), copyIndex(),'-osdisk1')]",
+                        "createOption": "FromImage"
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "name": "[concat(variables('appServerNamePrefix'), copyIndex(),'-datadisk1')]",
+                            "createOption": "Empty",
+                            "diskSizeGB": 4095
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('appServerNamePrefix'), copyindex(), '-nic1'))]"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(variables('dbServerNamePrefix'), copyIndex())]",
+            "apiVersion": "2017-03-30",
+            "location": "[variables('location')]",
+            "copy": {
+                "name": "dbVMLoop",
+                "count": "[parameters('numberOfDBServers')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('dbAVSetName'))]",
+                "dbNICLoop",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('diagStorageAccountName'))]"
+            ],
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('dbAVSetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[variables(concat('environmentSize', parameters('environmentSize'))).db.vmSize]"
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('dbServerNamePrefix'), copyIndex())]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": true,
+                        "ssh": {
+                            "publicKeys": [
+                                {
+                                    "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
+                                    "keyData": "[parameters('sshPublicKey')]"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('CentOS')]",
+                    "osDisk": {
+                        "name": "[concat(variables('dbServerNamePrefix'), copyIndex(),'-osdisk1')]",
+                        "createOption": "FromImage"
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "name": "[concat(variables('dbServerNamePrefix'), copyIndex(),'-data1')]",
+                            "createOption": "Empty",
+                            "diskSizeGB": 4095
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('dbServerNamePrefix'), copyindex(), '-nic1'))]"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
