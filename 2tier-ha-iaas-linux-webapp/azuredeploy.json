@@ -8,7 +8,7 @@
                 "description": "Admin username for all the App and DB VMs."
             }
         },
-        "sshPublicKey": {
+        "SSHPublicKey": {
             "type": "string",
             "metadata": {
                 "description": "ssh public key for all the App and DB VMs."
@@ -285,7 +285,7 @@
                             "publicKeys": [
                                 {
                                     "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
-                                    "keyData": "[parameters('sshPublicKey')]"
+                                    "keyData": "[parameters('SSHPublicKey')]"
                                 }
                             ]
                         }
@@ -345,7 +345,7 @@
                             "publicKeys": [
                                 {
                                     "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
-                                    "keyData": "[parameters('sshPublicKey')]"
+                                    "keyData": "[parameters('SSHPublicKey')]"
                                 }
                             ]
                         }
