@@ -32,16 +32,25 @@
             "minValue": 2,
             "maxValue": 9,
             "metadata": {
-                "description": "Number of VMs to host App Server to deploy, limit 5 since this sample is using a single storage account"
+                "description": "Number of VMs to host App Server instances, default 3 to support high availabiliy."
             }
         },
         "numberOfDBServers": {
             "type": "int",
             "defaultValue": 2,
-            "minValue": 2,
-            "maxValue": 6,
+            "minValue": 1,
+            "maxValue": 2,
             "metadata": {
-                "description": "Number of VMs to host DB Server to deploy, limit 5 since this sample is using a single storage account"
+                "description": "Number of VMs to host DB Server instances, default 2 to support high availabiliy."
+            }
+        },
+        "numberOfAddOnServers": {
+            "type": "int",
+            "defaultValue": 2,
+            "minValue": 1,
+            "maxValue": 2,
+            "metadata": {
+                "description": "Number of VMs to host Add-On Services."
             }
         }
     },
@@ -50,17 +59,18 @@
         "resourceGroupName": "[resourceGroup().name]",
         "appServerNamePrefix": "app",
         "dbServerNamePrefix": "db",
+        "addOnServerNamePrefix": "addon",
         "appAVSetName": "[concat(variables('appServerNamePrefix'), 'avset')]",
         "dbAVSetName": "[concat(variables('dbServerNamePrefix'), 'avset')]",
         "virtualNetworkName": "[concat(variables('resourceGroupName'), 'vnet')]",
-        "addressPrefix": "10.1.7.0/24",
+        "addressPrefix": "10.0.0.0/16",
         "subnetName": "default",
-        "subnetPrefix": "10.1.7.0/24",
+        "subnetPrefix": "10.0.0.0/24",
         "diagStorageAccountName": "[concat(variables('resourceGroupName'), 'diag')]",
         "CentOS": {
             "publisher": "OpenLogic",
             "offer": "CentOS",
-            "sku": "6.9",
+            "sku": "7.5",
             "version": "latest"
         },
         "environmentSizeSmall": {
@@ -69,6 +79,9 @@
             },
             "db": {
                 "vmSize": "Standard_E16-8s_v3"
+            },
+            "addOn": {
+                "vmSize": "Standard_F2s"
             }
         },
         "environmentSizeMedium": {
@@ -77,6 +90,9 @@
             },
             "db": {
                 "vmSize": "Standard_E32-16s_v3"
+            },
+            "addOn": {
+                "vmSize": "Standard_F2s"
             }
         },
         "environmentSizeLarge": {
@@ -85,6 +101,9 @@
             },
             "db": {
                 "vmSize": "Standard_E64-32s_v3"
+            },
+            "addOn": {
+                "vmSize": "Standard_F2s"
             }
         }
     },
@@ -196,6 +215,20 @@
             }
         },
         {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[concat(variables('addOnServerNamePrefix'), copyIndex(), '-ip')]",
+            "apiVersion": "2018-01-01",
+            "location": "[variables('location')]",
+            "copy": {
+                "name": "addOnIPLoop",
+                "count": "[parameters('numberOfAddOnServers')]"
+            },
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic"
+            }
+        },
+        {
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[concat(variables('appServerNamePrefix'), copyindex(), '-nic1')]",
             "apiVersion": "2018-01-01",
@@ -246,6 +279,36 @@
                             "privateIPAllocationMethod": "Dynamic",
                             "publicIPAddress": {
                                 "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('dbServerNamePrefix'), copyIndex(), '-ip'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('addOnServerNamePrefix'), copyindex(), '-nic1')]",
+            "apiVersion": "2018-01-01",
+            "location": "[variables('location')]",
+            "copy": {
+                "name": "addOnNICLoop",
+                "count": "[parameters('numberOfAddOnServers')]"
+            },
+            "dependsOn": [
+                "addOnIPLoop",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('addOnServerNamePrefix'), copyIndex(), '-ip'))]"
                             },
                             "subnet": {
                                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]"
@@ -370,6 +433,62 @@
                     "networkInterfaces": [
                         {
                             "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('dbServerNamePrefix'), copyindex(), '-nic1'))]"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(variables('addOnServerNamePrefix'), copyIndex())]",
+            "apiVersion": "2017-03-30",
+            "location": "[variables('location')]",
+            "copy": {
+                "name": "addOnVMLoop",
+                "count": "[parameters('numberOfAddOnServers')]"
+            },
+            "dependsOn": [
+                "addOnNICLoop",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('diagStorageAccountName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables(concat('environmentSize', parameters('environmentSize'))).addOn.vmSize]"
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('addOnServerNamePrefix'), copyIndex())]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": true,
+                        "ssh": {
+                            "publicKeys": [
+                                {
+                                    "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
+                                    "keyData": "[parameters('SSHPublicKey')]"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('CentOS')]",
+                    "osDisk": {
+                        "name": "[concat(variables('addOnServerNamePrefix'), copyIndex(),'-osdisk1')]",
+                        "createOption": "FromImage"
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "name": "[concat(variables('addOnServerNamePrefix'), copyIndex(),'-data1')]",
+                            "createOption": "Empty",
+                            "diskSizeGB": 4095
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('addOnServerNamePrefix'), copyindex(), '-nic1'))]"
                         }
                     ]
                 }

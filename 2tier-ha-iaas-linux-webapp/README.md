@@ -12,18 +12,21 @@ This template creates multiple linux app and db servers in availabily sets to ru
 3. One [Azure Storage](https://docs.microsoft.com/en-us/azure/storage/common/storage-introduction) Account to configure diagnostic settings for all the VMs.
 4. One Public IP Address and one Network Interface for each VM instance.
 5. All the resources are created in the same location as Resource Group.
-6. VMs are created with [CentOS 6.9 images](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/overview).
+6. VMs are created with [CentOS Base 7.5 images](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/overview).
 
 #### [Environment Size](https://docs.microsoft.com/en-us/azure/virtual-machines/windows/sizes) options
 1. Small: 
     App- E8s_v3 (8 VCPUs, 64GB RAM), 
-    DB- E16-8s_v3 (8 VCPUs, 128GB RAM)          
+    DB- E16-8s_v3 (8 VCPUs, 128GB RAM), 
+    AddOn- Standard_F2s (2 VCPUs, 4GB RAM)          
 2.  Medium:
     App- E16-8s_v3 (8 VCPUs, 128GB RAM), 
-    DB- E32-16s_v3 (16 VCPUs, 256GB RAM)
+    DB- E32-16s_v3 (16 VCPUs, 256GB RAM), 
+    AddOn- Standard_F2s (2 VCPUs, 4GB RAM) 
 3. Large:
     App- E32-16s_v3 (16 VCPUs, 256GB RAM), 
-    DB- E64-32s_v3 (32 VCPUs, 432GB RAM)
+    DB- E64-32s_v3 (32 VCPUs, 432GB RAM), 
+    AddOn- Standard_F2s (2 VCPUs, 4GB RAM) 
 
 4. All VMs include a [4TB (P50)](https://azure.microsoft.com/en-us/pricing/details/managed-disks/) Data Disk attached (unmounted) to them.
 
