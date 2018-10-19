@@ -11,8 +11,9 @@ This template creates multiple linux app and db servers in availabily sets to ru
 2. One [Azure Virtual Network](https://docs.microsoft.com/en-us/azure/virtual-network/virtual-networks-overview) and one subnet.
 3. One [Azure Storage](https://docs.microsoft.com/en-us/azure/storage/common/storage-introduction) Account to configure diagnostic settings for all the VMs.
 4. One Public IP Address and one Network Interface for each VM instance.
-5. All the resources are created in the same location as Resource Group.
-6. VMs are created with [CentOS Base 7.5 images](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/overview).
+5. One Network Security Group (NSG) for each VM to restrict in/out bound n/w traffic.
+6. All the resources are created in the same location as Resource Group.
+7. VMs are created with [CentOS Base 7.5 images](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/overview).
 
 #### [Environment Size](https://docs.microsoft.com/en-us/azure/virtual-machines/windows/sizes) options
 1. Small: 
